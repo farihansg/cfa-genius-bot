@@ -1,24 +1,26 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2, Sparkles, TrendingUp, BarChart3, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 const QUICK_ACTIONS = [
-  { label: 'Analyze NVDA', icon: BarChart3, prompt: 'Analyze NVDA with technical and fundamental analysis' },
-  { label: 'Portfolio Review', icon: TrendingUp, prompt: 'Review my portfolio and suggest rebalancing' },
-  { label: 'Find Opportunities', icon: Sparkles, prompt: 'Scan the market for top momentum plays today' },
-  { label: 'Rebalance', icon: RefreshCw, prompt: 'Rebalance my portfolio across all strategies' },
+  { label: 'Analyze NVDA', icon: BarChart3, prompt: 'Analyze NVDA with full technical and fundamental analysis including P/E, RSI, MACD, and fair value estimate' },
+  { label: 'Portfolio Review', icon: TrendingUp, prompt: 'Review my current portfolio. Show allocation breakdown, risk metrics, and suggest optimizations' },
+  { label: 'Find Opportunities', icon: Sparkles, prompt: 'Scan the market for top momentum plays and undervalued stocks today. Include risk scores.' },
+  { label: 'Rebalance', icon: RefreshCw, prompt: 'Analyze my portfolio vs target allocation and recommend specific rebalancing trades' },
 ];
 
 const INITIAL_MESSAGES: Msg[] = [
   {
     role: 'assistant',
-    content: `Hey! I'm **Clawbot**, your AI financial advisor. 🤖\n\nI manage 5 active strategies across stocks & REITs. I can analyze positions, execute simulated trades, scan for opportunities, and rebalance your portfolio.\n\nWhat would you like to do?`,
+    content: `Hey! I'm **InveStarAnalyst**, your AI investment advisor. 🤖\n\nI manage strategies across stocks, REITs, and crypto with CFA-level analysis. I can:\n\n- **Analyze** any stock/crypto with fundamental + technical data\n- **Execute** buy orders through your Alpaca account\n- **Optimize** your portfolio allocation\n- **Scan** for momentum plays and value opportunities\n\nWhat would you like to do?`,
   },
 ];
 
 const ClawbotChat = () => {
+  const { session } = useAuth();
   const [messages, setMessages] = useState<Msg[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,13 +42,19 @@ const ClawbotChat = () => {
     const allMessages = [...messages, userMsg];
 
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clawbot-chat`;
+      // Use authenticated endpoint if logged in, otherwise fallback
+      const fnName = session ? 'investar-chat' : 'clawbot-chat';
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      } else {
+        headers.Authorization = `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`;
+      }
+
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers,
         body: JSON.stringify({ messages: allMessages }),
       });
 
@@ -103,13 +111,12 @@ const ClawbotChat = () => {
 
   return (
     <div className="flex flex-col h-full bg-background border-l border-border">
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
           <Bot className="w-4 h-4 text-primary" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-foreground">Clawbot AI</div>
+          <div className="text-sm font-semibold text-foreground">InveStarAnalyst</div>
           <div className="text-[11px] text-muted-foreground flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-gain pulse-dot" />
             CFA Advisor · Active
@@ -117,7 +124,6 @@ const ClawbotChat = () => {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : ''}`}>
@@ -147,15 +153,11 @@ const ClawbotChat = () => {
           </div>
         ))}
 
-        {/* Quick Actions */}
         {showQuickActions && (
           <div className="grid grid-cols-2 gap-2 mt-2">
             {QUICK_ACTIONS.map((a) => (
-              <button
-                key={a.label}
-                onClick={() => send(a.prompt)}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors text-left"
-              >
+              <button key={a.label} onClick={() => send(a.prompt)}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors text-left">
                 <a.icon className="w-4 h-4 text-primary shrink-0" />
                 <span className="text-xs text-foreground font-medium">{a.label}</span>
               </button>
@@ -166,27 +168,23 @@ const ClawbotChat = () => {
         {isLoading && (
           <div className="flex items-center gap-2 text-muted-foreground pl-10">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            <span className="text-xs">Thinking...</span>
+            <span className="text-xs">Analyzing...</span>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div className="border-t border-border p-3">
         <div className="flex gap-2 items-end">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Ask Clawbot anything..."
+            placeholder="Ask about any stock, crypto, or REIT..."
             className="flex-1 bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
           />
-          <button
-            onClick={() => send()}
-            disabled={isLoading || !input.trim()}
-            className="bg-primary text-primary-foreground p-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-30 transition-all"
-          >
+          <button onClick={() => send()} disabled={isLoading || !input.trim()}
+            className="bg-primary text-primary-foreground p-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-30 transition-all">
             <Send className="w-4 h-4" />
           </button>
         </div>
