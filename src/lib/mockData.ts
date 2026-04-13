@@ -8,6 +8,7 @@ export interface Holding {
   changePercent: number;
   sector: string;
   type: 'stock' | 'reit' | 'etf';
+  logo?: string;
 }
 
 export interface Trade {
@@ -64,13 +65,32 @@ export const tickerData = [
   { symbol: 'QQQ', price: 454.12, change: 1.87 },
   { symbol: 'DIA', price: 398.45, change: 0.43 },
   { symbol: 'IWM', price: 205.67, change: -0.32 },
-  { symbol: 'VTI', price: 265.34, change: 0.98 },
   { symbol: 'BTC', price: 71245, change: 2.15 },
+  { symbol: 'ETH', price: 3842, change: 1.92 },
   { symbol: 'GLD', price: 214.56, change: 0.12 },
   { symbol: '10Y', price: 4.32, change: -0.05 },
   { symbol: 'VIX', price: 14.23, change: -3.45 },
-  { symbol: 'DXY', price: 104.12, change: -0.18 },
 ];
+
+// Generate fake chart data
+export function generateChartData(days: number = 30) {
+  const data = [];
+  let price = 147500; // portfolio value in cents for precision
+  const now = Date.now();
+  const msPerPoint = (days * 24 * 60 * 60 * 1000) / 100;
+  
+  for (let i = 0; i < 100; i++) {
+    const volatility = 0.015;
+    const drift = 0.0003;
+    const change = price * (drift + volatility * (Math.random() - 0.48));
+    price += change;
+    data.push({
+      time: new Date(now - (100 - i) * msPerPoint).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: Math.round(price) / 100,
+    });
+  }
+  return data;
+}
 
 export function getPortfolioStats() {
   const totalValue = portfolioHoldings.reduce((sum, h) => sum + h.shares * h.currentPrice, 0);
