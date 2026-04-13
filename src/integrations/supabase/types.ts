@@ -14,7 +14,156 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_history: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          auto_invest_enabled: boolean | null
+          bond_target_pct: number | null
+          buy_on_dip: boolean | null
+          dca_amount_usd: number | null
+          dca_frequency: string | null
+          dividend_focus: boolean | null
+          esg_filter: boolean | null
+          id: string
+          investing_style: string | null
+          max_position_pct: number | null
+          notify_before_invest: boolean | null
+          rebalance_frequency: string | null
+          reit_target_pct: number | null
+          risk_level: string | null
+          sell_orders_allowed: boolean | null
+          stock_target_pct: number | null
+          time_horizon: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_invest_enabled?: boolean | null
+          bond_target_pct?: number | null
+          buy_on_dip?: boolean | null
+          dca_amount_usd?: number | null
+          dca_frequency?: string | null
+          dividend_focus?: boolean | null
+          esg_filter?: boolean | null
+          id: string
+          investing_style?: string | null
+          max_position_pct?: number | null
+          notify_before_invest?: boolean | null
+          rebalance_frequency?: string | null
+          reit_target_pct?: number | null
+          risk_level?: string | null
+          sell_orders_allowed?: boolean | null
+          stock_target_pct?: number | null
+          time_horizon?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_invest_enabled?: boolean | null
+          bond_target_pct?: number | null
+          buy_on_dip?: boolean | null
+          dca_amount_usd?: number | null
+          dca_frequency?: string | null
+          dividend_focus?: boolean | null
+          esg_filter?: boolean | null
+          id?: string
+          investing_style?: string | null
+          max_position_pct?: number | null
+          notify_before_invest?: boolean | null
+          rebalance_frequency?: string | null
+          reit_target_pct?: number | null
+          risk_level?: string | null
+          sell_orders_allowed?: boolean | null
+          stock_target_pct?: number | null
+          time_horizon?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trade_log: {
+        Row: {
+          ai_rationale: string | null
+          alpaca_order_id: string | null
+          created_at: string | null
+          filled_avg_price: number | null
+          id: string
+          notional: number | null
+          order_type: string | null
+          qty: number | null
+          side: string
+          status: string | null
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          ai_rationale?: string | null
+          alpaca_order_id?: string | null
+          created_at?: string | null
+          filled_avg_price?: number | null
+          id?: string
+          notional?: number | null
+          order_type?: string | null
+          qty?: number | null
+          side?: string
+          status?: string | null
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          ai_rationale?: string | null
+          alpaca_order_id?: string | null
+          created_at?: string | null
+          filled_avg_price?: number | null
+          id?: string
+          notional?: number | null
+          order_type?: string | null
+          qty?: number | null
+          side?: string
+          status?: string | null
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
