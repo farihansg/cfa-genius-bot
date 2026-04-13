@@ -12,8 +12,16 @@ export default {
         "2xl": "1400px",
       },
     },
-    extend: {
+    fontFamily: {
+        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['Inter', 'sans-serif'],
+      },
+      extend: {
       colors: {
+        gain: "hsl(var(--gain))",
+        loss: "hsl(var(--loss))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
