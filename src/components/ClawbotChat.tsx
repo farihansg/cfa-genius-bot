@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, TrendingUp, BarChart3, RefreshCw } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Bot, User, Loader2, Sparkles, TrendingUp, BarChart3, RefreshCw, Mic, MicOff, Volume2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
+import { toast } from 'sonner';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -15,7 +16,7 @@ const QUICK_ACTIONS = [
 const INITIAL_MESSAGES: Msg[] = [
   {
     role: 'assistant',
-    content: `Hey! I'm **InveStarAnalyst**, your AI investment advisor. 🤖\n\nI manage strategies across stocks, REITs, and crypto with CFA-level analysis. I can:\n\n- **Analyze** any stock/crypto with fundamental + technical data\n- **Execute** buy orders through your Alpaca account\n- **Optimize** your portfolio allocation\n- **Scan** for momentum plays and value opportunities\n\nWhat would you like to do?`,
+    content: `Hey! I'm **InveStarAnalyst**, your AI investment advisor. 🤖\n\nI can:\n- **Analyze** any stock/crypto with CFA-level depth\n- **Execute trades** — just say "buy $500 of AAPL"\n- **Voice commands** — tap the 🎤 to speak\n- **Optimize** your portfolio allocation\n\nWhat would you like to do?`,
   },
 ];
 
@@ -24,11 +25,60 @@ const ClawbotChat = () => {
   const [messages, setMessages] = useState<Msg[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // --- Trade execution parser ---
+  const checkAndExecuteTrade = useCallback(async (assistantText: string) => {
+    // Look for trade blocks in assistant response
+    const tradeMatch = assistantText.match(/\[TRADE\]\s*(BUY|SELL)\s*\$?([\d,]+(?:\.\d+)?)\s*(?:of\s+)?([A-Z]{1,5})/i);
+    if (!tradeMatch || !session) return;
+
+    const side = tradeMatch[1].toUpperCase();
+    const amount = parseFloat(tradeMatch[2].replace(/,/g, ''));
+    const symbol = tradeMatch[3].toUpperCase();
+
+    if (side !== 'BUY') {
+      toast.info('🔒 Sell orders require manual approval in your brokerage.');
+      return;
+    }
+
+    toast.info(`📊 Executing: BUY $${amount.toLocaleString()} of ${symbol}...`);
+
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/alpaca-invest`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          symbol,
+          notional: amount,
+          type: 'market',
+          aiRationale: `AI-initiated trade from chat`,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`✅ ${data.message}`);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `✅ **Trade Executed!**\n\n- **Symbol:** ${symbol}\n- **Amount:** $${amount.toLocaleString()}\n- **Status:** Filled\n\n${data.message}`,
+        }]);
+      } else {
+        toast.error(data.message || data.error || 'Trade failed');
+      }
+    } catch {
+      toast.error('Failed to execute trade. Check your connection.');
+    }
+  }, [session]);
 
   const send = async (text?: string) => {
     const msg = (text || input).trim();
@@ -36,13 +86,12 @@ const ClawbotChat = () => {
 
     const userMsg: Msg = { role: 'user', content: msg };
     setInput('');
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
     const allMessages = [...messages, userMsg];
 
     try {
-      // Use authenticated endpoint if logged in, otherwise fallback
       const fnName = session ? 'investar-chat' : 'clawbot-chat';
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -67,7 +116,7 @@ const ClawbotChat = () => {
 
       const upsert = (chunk: string) => {
         assistantSoFar += chunk;
-        setMessages((prev) => {
+        setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last?.role === 'assistant' && prev.length > INITIAL_MESSAGES.length) {
             return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
@@ -80,7 +129,6 @@ const ClawbotChat = () => {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         let nl: number;
         while ((nl = buffer.indexOf('\n')) !== -1) {
           let line = buffer.slice(0, nl);
@@ -96,16 +144,65 @@ const ClawbotChat = () => {
           } catch {}
         }
       }
+
+      // After streaming completes, check for trade commands
+      if (assistantSoFar) {
+        checkAndExecuteTrade(assistantSoFar);
+      }
     } catch (e) {
       console.error(e);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Connection issue. Please try again.' },
-      ]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection issue. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // --- Voice (Web Speech API) ---
+  const toggleVoice = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition not supported in this browser.');
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+
+      // Auto-send on final result
+      if (event.results[event.results.length - 1].isFinal) {
+        setTimeout(() => {
+          send(transcript);
+          setIsListening(false);
+        }, 300);
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      toast.error('Voice recognition error. Try again.');
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+  }, [isListening, send]);
 
   const showQuickActions = messages.length <= 1;
 
@@ -115,14 +212,34 @@ const ClawbotChat = () => {
         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
           <Bot className="w-4 h-4 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <div className="text-sm font-semibold text-foreground">InveStarAnalyst</div>
           <div className="text-[11px] text-muted-foreground flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-gain pulse-dot" />
-            CFA Advisor · Active
+            CFA Advisor · Voice + Trade Enabled
           </div>
         </div>
+        <button onClick={toggleVoice} title={isListening ? 'Stop listening' : 'Voice command'}
+          className={`p-2 rounded-lg transition-all ${
+            isListening
+              ? 'bg-loss/20 text-loss animate-pulse'
+              : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+          }`}>
+          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        </button>
       </div>
+
+      {isListening && (
+        <div className="px-4 py-2 bg-loss/10 border-b border-loss/20 flex items-center gap-2">
+          <div className="flex gap-0.5 items-center">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="w-1 bg-loss rounded-full animate-pulse"
+                style={{ height: `${8 + Math.random() * 12}px`, animationDelay: `${i * 0.1}s` }} />
+            ))}
+          </div>
+          <span className="text-xs text-loss font-medium">Listening... speak your command</span>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((m, i) => (
@@ -176,17 +293,27 @@ const ClawbotChat = () => {
 
       <div className="border-t border-border p-3">
         <div className="flex gap-2 items-end">
+          <button onClick={toggleVoice} title="Voice input"
+            className={`p-2.5 rounded-xl transition-all ${
+              isListening ? 'bg-loss text-white animate-pulse' : 'bg-card border border-border text-muted-foreground hover:text-foreground'
+            }`}>
+            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Ask about any stock, crypto, or REIT..."
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+            placeholder={isListening ? 'Listening...' : 'Ask anything or say "buy $500 of AAPL"...'}
             className="flex-1 bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
           />
           <button onClick={() => send()} disabled={isLoading || !input.trim()}
             className="bg-primary text-primary-foreground p-2.5 rounded-xl hover:bg-primary/90 disabled:opacity-30 transition-all">
             <Send className="w-4 h-4" />
           </button>
+        </div>
+        <div className="flex items-center gap-1 mt-2 px-1">
+          <Volume2 className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[10px] text-muted-foreground">Voice + Chat · Say "buy $1000 of NVDA" to trade</span>
         </div>
       </div>
     </div>

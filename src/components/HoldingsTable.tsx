@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { portfolioHoldings } from '@/lib/mockData';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import StockDetailModal from './StockDetailModal';
 
 const HoldingsTable = () => {
+  const [selected, setSelected] = useState<typeof portfolioHoldings[0] | null>(null);
   const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   return (
@@ -13,13 +16,10 @@ const HoldingsTable = () => {
       <div className="space-y-1">
         {portfolioHoldings.map((h) => {
           const value = h.shares * h.currentPrice;
-          const pl = (h.currentPrice - h.avgCost) * h.shares;
           const isUp = h.changePercent >= 0;
           return (
-            <div
-              key={h.symbol}
-              className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-card transition-colors cursor-pointer group"
-            >
+            <div key={h.symbol} onClick={() => setSelected(h)}
+              className="flex items-center justify-between py-3 px-4 rounded-xl hover:bg-card transition-colors cursor-pointer group">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground">
                   {h.symbol.slice(0, 2)}
@@ -40,6 +40,15 @@ const HoldingsTable = () => {
           );
         })}
       </div>
+      {selected && (
+        <StockDetailModal
+          symbol={selected.symbol}
+          name={selected.name}
+          price={selected.currentPrice}
+          changePercent={selected.changePercent}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 };
