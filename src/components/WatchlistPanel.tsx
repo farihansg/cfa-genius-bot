@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { watchlist } from '@/lib/mockData';
 import { TrendingUp, TrendingDown, Eye } from 'lucide-react';
+import StockDetailModal from './StockDetailModal';
 
 const WatchlistPanel = () => {
+  const [selected, setSelected] = useState<typeof watchlist[0] | null>(null);
+
   const signalStyle = (s: string) => {
     switch (s) {
       case 'BUY': return 'text-gain bg-gain/10 border-gain/20';
@@ -21,7 +25,8 @@ const WatchlistPanel = () => {
         {watchlist.map((w) => {
           const isUp = w.changePercent >= 0;
           return (
-            <div key={w.symbol} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+            <div key={w.symbol} onClick={() => setSelected(w)}
+              className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-foreground">
                   {w.symbol.slice(0, 2)}
@@ -47,6 +52,15 @@ const WatchlistPanel = () => {
           );
         })}
       </div>
+      {selected && (
+        <StockDetailModal
+          symbol={selected.symbol}
+          name={selected.name}
+          price={selected.price}
+          changePercent={selected.changePercent}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 };
