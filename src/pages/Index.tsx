@@ -4,7 +4,7 @@ import PortfolioSummary from '@/components/PortfolioSummary';
 import HoldingsTable from '@/components/HoldingsTable';
 import RecentTrades from '@/components/RecentTrades';
 import WatchlistPanel from '@/components/WatchlistPanel';
-import ClawbotChat from '@/components/ClawbotChat';
+
 import StrategyPanel from '@/components/StrategyPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -54,19 +54,14 @@ const Index = () => {
 
       <MarketTicker />
 
-      <div className="flex-1 flex min-h-0">
-        <div className="flex-1 overflow-y-auto pb-6">
-          <PortfolioChart />
-          <PortfolioSummary />
-          <div className="mt-4"><StrategyPanel /></div>
-          <div className="mt-4"><HoldingsTable /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-6 mt-4">
-            <RecentTrades />
-            <WatchlistPanel />
-          </div>
-        </div>
-        <div className="w-[380px] shrink-0 hidden lg:flex">
-          <ClawbotChat />
+      <div className="flex-1 overflow-y-auto pb-6">
+        <PortfolioChart />
+        <PortfolioSummary />
+        <div className="mt-4"><StrategyPanel /></div>
+        <div className="mt-4"><HoldingsTable /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-6 mt-4">
+          <RecentTrades />
+          <WatchlistPanel />
         </div>
       </div>
     </div>

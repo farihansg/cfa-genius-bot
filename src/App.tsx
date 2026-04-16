@@ -9,6 +9,7 @@ import AuthPage from "./pages/Auth";
 import SettingsPage from "./pages/Settings";
 import InvestPage from "./pages/Invest";
 import NotFound from "./pages/NotFound";
+import FloatingChatWidget from "./components/FloatingChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/invest" element={<ProtectedRoute><InvestPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FloatingChatWidget />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
