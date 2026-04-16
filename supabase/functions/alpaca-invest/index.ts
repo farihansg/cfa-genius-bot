@@ -52,15 +52,27 @@ serve(async (req) => {
     const maxPct = settings?.max_position_pct || 15;
 
     const accRes = await fetch(`${ALPACA_BASE}/v2/account`, { headers: alpacaHeaders });
+    if (!accRes.ok) {
+      const errText = await accRes.text();
+      console.error("Alpaca account error:", accRes.status, errText);
+      return new Response(JSON.stringify({ success: false, message: `Alpaca account error (${accRes.status}). Check your API keys and base URL.` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const account = await accRes.json();
     const totalValue = Number(account.portfolio_value);
     const maxAllowed = totalValue * (maxPct / 100);
 
     // Check existing position
     const posRes = await fetch(`${ALPACA_BASE}/v2/positions`, { headers: alpacaHeaders });
-    const positions = await posRes.json();
-    const existing = Array.isArray(positions) ? positions.find((p: any) => p.symbol === symbol.toUpperCase()) : null;
-    const existingValue = existing ? Number(existing.market_value) : 0;
+    let existingValue = 0;
+    if (posRes.ok) {
+      const positions = await posRes.json();
+      const existing = Array.isArray(positions) ? positions.find((p: any) => p.symbol === symbol.toUpperCase()) : null;
+      existingValue = existing ? Number(existing.market_value) : 0;
+    } else {
+      await posRes.text(); // consume body
+    }
 
     if (existingValue + notional > maxAllowed) {
       return new Response(JSON.stringify({
