@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { Bot, ArrowLeft, Save, Shield, Sliders, Target, Zap } from 'lucide-react';
+import { Bot, ArrowLeft, Save, Shield, Sliders, Target, Zap, Link2 } from 'lucide-react';
+import BrokerageConnections from '@/components/BrokerageConnections';
 import { toast } from 'sonner';
 
 const SettingsPage = () => {
@@ -107,16 +108,8 @@ const SettingsPage = () => {
           <ToggleField label="Dividend focus" checked={settings.dividend_focus} onChange={v => update('dividend_focus', v)} />
         </Section>
 
-        {/* Alpaca API info */}
-        <div className="bg-card rounded-2xl border border-border p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-warning" /> Alpaca Connection
-          </h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Alpaca API keys are configured securely on the backend. To update your Alpaca credentials, contact your admin or update the secrets in the backend settings. 
-            Your account uses <strong className="text-foreground">paper trading</strong> mode by default for safety.
-          </p>
-        </div>
+        {/* Brokerage Connections */}
+        <BrokerageConnections />
       </div>
     </div>
   );
