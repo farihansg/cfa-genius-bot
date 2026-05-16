@@ -52,8 +52,9 @@ const SettingsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border px-6 py-3 flex items-center gap-4">
-        <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-muted transition-colors">
-          <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+        <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm text-muted-foreground">
+          <ArrowLeft className="w-4 h-4" />
+          Back
         </button>
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-primary" />
