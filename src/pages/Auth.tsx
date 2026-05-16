@@ -127,6 +127,19 @@ const AuthPage = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
 
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+            <div className="relative flex justify-center"><span className="bg-card px-2 text-[10px] uppercase tracking-wider text-muted-foreground">or</span></div>
+          </div>
+
+          <button
+            onClick={handleDemo} disabled={loading}
+            className="w-full bg-muted text-foreground py-2.5 rounded-xl text-sm font-semibold hover:bg-muted/70 disabled:opacity-40 flex items-center justify-center gap-2 transition-all border border-border"
+          >
+            Continue as Demo
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
           <p className="text-center mt-4 text-xs text-muted-foreground">
             {mode === 'login' ? "No account? " : "Have an account? "}
             <button
