@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Mail, Lock, ArrowRight } from 'lucide-react';
 
