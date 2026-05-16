@@ -27,6 +27,46 @@ const AuthPage = () => {
     setLoading(false);
   }
 
+  async function handleDemo() {
+    setLoading(true);
+    setMsg('');
+    // Unique demo account per browser, stored locally so the same demo user returns
+    let demoEmail = localStorage.getItem('demo_email');
+    let demoPassword = localStorage.getItem('demo_password');
+    if (!demoEmail || !demoPassword) {
+      const rand = Math.random().toString(36).slice(2, 10);
+      demoEmail = `demo_${rand}_${Date.now()}@investar.demo`;
+      demoPassword = `Demo!${Math.random().toString(36).slice(2, 14)}`;
+      localStorage.setItem('demo_email', demoEmail);
+      localStorage.setItem('demo_password', demoPassword);
+    }
+
+    let { error } = await supabase.auth.signInWithPassword({
+      email: demoEmail, password: demoPassword,
+    });
+    if (error) {
+      const { error: signUpErr } = await supabase.auth.signUp({
+        email: demoEmail, password: demoPassword,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (signUpErr) {
+        setMsg(signUpErr.message);
+        setLoading(false);
+        return;
+      }
+      const retry = await supabase.auth.signInWithPassword({
+        email: demoEmail, password: demoPassword,
+      });
+      if (retry.error) {
+        setMsg('Demo unavailable: please confirm email is auto-confirmed in auth settings.');
+        setLoading(false);
+        return;
+      }
+    }
+    navigate('/');
+    setLoading(false);
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
