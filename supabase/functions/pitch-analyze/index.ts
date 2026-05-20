@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    const { pdfBase64, fileName, sourceUrl } = await req.json();
+    let { pdfBase64, fileName, sourceUrl } = await req.json();
 
     if (!pdfBase64 && !sourceUrl) {
       return new Response(JSON.stringify({ error: 'Provide pdfBase64 or sourceUrl' }), {
@@ -85,17 +85,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    let resolvedFileName = fileName;
+    let fetchNote: string | null = null;
+
+    // If URL provided and no PDF yet, try to fetch deck content
+    if (!pdfBase64 && sourceUrl) {
+      try {
+        const fetched = await fetchDeckFromUrl(sourceUrl);
+        if (fetched.pdfBase64) {
+          pdfBase64 = fetched.pdfBase64;
+          resolvedFileName = fetched.fileName || 'deck.pdf';
+        } else if (fetched.note) {
+          fetchNote = fetched.note;
+        }
+      } catch (e) {
+        console.error('URL fetch failed:', e);
+        fetchNote = `Could not auto-fetch the deck (${e instanceof Error ? e.message : 'unknown error'}). The link may be private or require sign-in.`;
+      }
+    }
+
     const userContent: any[] = [
-      { type: 'text', text: `Analyze this pitch deck${fileName ? ` (file: ${fileName})` : ''}${sourceUrl ? ` (source: ${sourceUrl})` : ''}. Score it like a top-tier VC and return the structured scorecard.` },
+      { type: 'text', text: `Analyze this pitch deck${resolvedFileName ? ` (file: ${resolvedFileName})` : ''}${sourceUrl ? ` (source: ${sourceUrl})` : ''}. Score it like a top-tier VC and return the structured scorecard.` },
     ];
 
     if (pdfBase64) {
       userContent.push({
         type: 'file',
-        file: { filename: fileName || 'deck.pdf', file_data: `data:application/pdf;base64,${pdfBase64}` },
+        file: { filename: resolvedFileName || 'deck.pdf', file_data: `data:application/pdf;base64,${pdfBase64}` },
       });
     } else if (sourceUrl) {
-      userContent.push({ type: 'text', text: `Fetch the deck from this URL and infer its contents: ${sourceUrl}. If you cannot access it directly, score based on the URL/context provided and note the limitation in the summary.` });
+      userContent.push({ type: 'text', text: `${fetchNote ? fetchNote + ' ' : ''}Attempt to infer contents from this URL: ${sourceUrl}. If you cannot access it, note the limitation explicitly in the summary and lower confidence scores accordingly.` });
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
