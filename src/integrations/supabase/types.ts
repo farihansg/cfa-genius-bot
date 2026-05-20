@@ -38,6 +38,54 @@ export type Database = {
         }
         Relationships: []
       }
+      pitch_analyses: {
+        Row: {
+          created_at: string
+          deck_name: string
+          id: string
+          improvements: Json | null
+          overall_score: number | null
+          scores: Json | null
+          source_type: string
+          source_url: string | null
+          strengths: Json | null
+          summary: string | null
+          user_id: string
+          vc_verdict: string | null
+          weaknesses: Json | null
+        }
+        Insert: {
+          created_at?: string
+          deck_name: string
+          id?: string
+          improvements?: Json | null
+          overall_score?: number | null
+          scores?: Json | null
+          source_type?: string
+          source_url?: string | null
+          strengths?: Json | null
+          summary?: string | null
+          user_id: string
+          vc_verdict?: string | null
+          weaknesses?: Json | null
+        }
+        Update: {
+          created_at?: string
+          deck_name?: string
+          id?: string
+          improvements?: Json | null
+          overall_score?: number | null
+          scores?: Json | null
+          source_type?: string
+          source_url?: string | null
+          strengths?: Json | null
+          summary?: string | null
+          user_id?: string
+          vc_verdict?: string | null
+          weaknesses?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

@@ -9,6 +9,7 @@ import AuthPage from "./pages/Auth";
 import SettingsPage from "./pages/Settings";
 import InvestPage from "./pages/Invest";
 import NotFound from "./pages/NotFound";
+import PitchScan from "./pages/PitchScan";
 import FloatingChatWidget from "./components/FloatingChatWidget";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/invest" element={<ProtectedRoute><InvestPage /></ProtectedRoute>} />
+            <Route path="/pitchscan" element={<ProtectedRoute><PitchScan /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <FloatingChatWidget />
