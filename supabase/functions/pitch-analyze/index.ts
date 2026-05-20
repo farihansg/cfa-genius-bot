@@ -70,6 +70,54 @@ const SCHEMA = {
   },
 };
 
+async function bufferToBase64(buf: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+async function fetchUrlAsPdfBase64(url: string, fileName: string): Promise<{ pdfBase64?: string; fileName?: string; note?: string }> {
+  const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'Mozilla/5.0 PitchScan' } });
+  if (!res.ok) return { note: `URL returned ${res.status}. May be private.` };
+  const ctype = res.headers.get('content-type') || '';
+  if (!ctype.includes('pdf')) {
+    return { note: `URL did not return a PDF (got ${ctype || 'unknown type'}). Analyzing from URL context only.` };
+  }
+  const buf = await res.arrayBuffer();
+  if (buf.byteLength > 20 * 1024 * 1024) return { note: 'Fetched deck exceeds 20MB. Analyzing from URL context only.' };
+  return { pdfBase64: await bufferToBase64(buf), fileName };
+}
+
+async function fetchDeckFromUrl(rawUrl: string): Promise<{ pdfBase64?: string; fileName?: string; note?: string }> {
+  let url: URL;
+  try { url = new URL(rawUrl); } catch { return { note: 'Invalid URL.' }; }
+
+  const host = url.hostname.toLowerCase();
+
+  // Google Slides — export as PDF
+  const slidesMatch = url.pathname.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+  if (host.includes('docs.google.com') && slidesMatch) {
+    const id = slidesMatch[1];
+    const exportUrl = `https://docs.google.com/presentation/d/${id}/export/pdf`;
+    return fetchUrlAsPdfBase64(exportUrl, `slides-${id}.pdf`);
+  }
+
+  // Google Drive file — try export
+  const driveMatch = url.pathname.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (host.includes('drive.google.com') && driveMatch) {
+    const id = driveMatch[1];
+    const exportUrl = `https://drive.google.com/uc?export=download&id=${id}`;
+    return fetchUrlAsPdfBase64(exportUrl, `drive-${id}.pdf`);
+  }
+
+  // Direct PDF or any URL — attempt fetch
+  return fetchUrlAsPdfBase64(rawUrl, rawUrl.split('/').pop()?.split('?')[0] || 'deck.pdf');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -77,7 +125,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
 
-    const { pdfBase64, fileName, sourceUrl } = await req.json();
+    let { pdfBase64, fileName, sourceUrl } = await req.json();
 
     if (!pdfBase64 && !sourceUrl) {
       return new Response(JSON.stringify({ error: 'Provide pdfBase64 or sourceUrl' }), {
@@ -85,17 +133,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    let resolvedFileName = fileName;
+    let fetchNote: string | null = null;
+
+    // If URL provided and no PDF yet, try to fetch deck content
+    if (!pdfBase64 && sourceUrl) {
+      try {
+        const fetched = await fetchDeckFromUrl(sourceUrl);
+        if (fetched.pdfBase64) {
+          pdfBase64 = fetched.pdfBase64;
+          resolvedFileName = fetched.fileName || 'deck.pdf';
+        } else if (fetched.note) {
+          fetchNote = fetched.note;
+        }
+      } catch (e) {
+        console.error('URL fetch failed:', e);
+        fetchNote = `Could not auto-fetch the deck (${e instanceof Error ? e.message : 'unknown error'}). The link may be private or require sign-in.`;
+      }
+    }
+
     const userContent: any[] = [
-      { type: 'text', text: `Analyze this pitch deck${fileName ? ` (file: ${fileName})` : ''}${sourceUrl ? ` (source: ${sourceUrl})` : ''}. Score it like a top-tier VC and return the structured scorecard.` },
+      { type: 'text', text: `Analyze this pitch deck${resolvedFileName ? ` (file: ${resolvedFileName})` : ''}${sourceUrl ? ` (source: ${sourceUrl})` : ''}. Score it like a top-tier VC and return the structured scorecard.` },
     ];
 
     if (pdfBase64) {
       userContent.push({
         type: 'file',
-        file: { filename: fileName || 'deck.pdf', file_data: `data:application/pdf;base64,${pdfBase64}` },
+        file: { filename: resolvedFileName || 'deck.pdf', file_data: `data:application/pdf;base64,${pdfBase64}` },
       });
     } else if (sourceUrl) {
-      userContent.push({ type: 'text', text: `Fetch the deck from this URL and infer its contents: ${sourceUrl}. If you cannot access it directly, score based on the URL/context provided and note the limitation in the summary.` });
+      userContent.push({ type: 'text', text: `${fetchNote ? fetchNote + ' ' : ''}Attempt to infer contents from this URL: ${sourceUrl}. If you cannot access it, note the limitation explicitly in the summary and lower confidence scores accordingly.` });
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
