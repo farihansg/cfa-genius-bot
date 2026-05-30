@@ -8,7 +8,7 @@ import WatchlistPanel from '@/components/WatchlistPanel';
 import StrategyPanel from '@/components/StrategyPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Search, Bell, Settings, TrendingUp, LogOut, Sparkles } from 'lucide-react';
+import { Bot, Search, Bell, Settings, TrendingUp, LogOut, Sparkles, Brain } from 'lucide-react';
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -28,6 +28,11 @@ const Index = () => {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button onClick={() => navigate('/alphalens')}
+            className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+            <Brain className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline">AlphaLens</span>
+          </button>
           <button onClick={() => navigate('/pitchscan')}
             className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
             <Sparkles className="w-4 h-4 text-primary" />
