@@ -256,6 +256,14 @@ export default function AlphaLens() {
               <p className="text-xs text-muted-foreground italic">DCF: {result.valuation?.dcfNote}</p>
             </Section>
 
+            {/* Interactive Financial Charts */}
+            <AlphaLensCharts
+              annual={result.financials?.annual}
+              valuationHistory={result.financials?.valuationHistory}
+              unitNote={result.financials?.unitNote}
+            />
+
+
             {/* Equity Research */}
             <Section icon={Brain} title="JP Morgan-Style Equity Research">
               <p className="text-sm text-foreground/90 mb-3">{result.equityResearch?.thesis}</p>
