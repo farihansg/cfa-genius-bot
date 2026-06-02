@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Sparkles, Loader2, TrendingUp, TrendingDown, Shield, Target, Brain, AlertTriangle, BarChart3, Award, Activity, DollarSign } from 'lucide-react';
+import AlphaLensCharts from '@/components/AlphaLensCharts';
 
 type Analysis = any;
 
@@ -254,6 +255,14 @@ export default function AlphaLens() {
               </div>
               <p className="text-xs text-muted-foreground italic">DCF: {result.valuation?.dcfNote}</p>
             </Section>
+
+            {/* Interactive Financial Charts */}
+            <AlphaLensCharts
+              annual={result.financials?.annual}
+              valuationHistory={result.financials?.valuationHistory}
+              unitNote={result.financials?.unitNote}
+            />
+
 
             {/* Equity Research */}
             <Section icon={Brain} title="JP Morgan-Style Equity Research">
