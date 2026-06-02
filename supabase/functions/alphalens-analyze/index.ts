@@ -57,6 +57,11 @@ const SCHEMA_INSTRUCTION = `Return ONLY valid JSON matching this exact shape:
   "sentiment": {"verdict": "Bullish"|"Neutral"|"Bearish", "news": string, "social": string, "analysts": string, "institutional": string},
   "risk": {"score": number, "financial": string, "operational": string, "regulatory": string, "market": string, "competitive": string},
   "portfolioFit": {"classification": string, "rationale": string},
+  "financials": {
+    "annual": [{"year": string, "revenue": number, "grossMargin": number, "operatingMargin": number, "netMargin": number, "fcf": number, "roic": number, "epsGrowth": number}],
+    "valuationHistory": [{"year": string, "pe": number, "evEbitda": number, "ps": number, "pfcf": number}],
+    "unitNote": string
+  },
   "priceTargets": {"bear": {"price": string, "probability": number}, "base": {"price": string, "probability": number}, "bull": {"price": string, "probability": number}, "weighted": string},
   "finalDecision": {
     "verdict": "Strong Buy"|"Buy"|"Hold"|"Reduce"|"Sell",
