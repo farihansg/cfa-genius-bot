@@ -11,6 +11,8 @@ Rules:
 - Highlight contrarian opportunities and asymmetric setups.
 - Explicitly assess whether the stock can outperform the S&P 500 over the next 3-5 years.
 - Grade subcomponents A+/A/B/C/D/F. All scores 0-100 unless specified.
+- For "financials.annual": include at least 5 historical years + 2 projected years (mark projected years with an "E" suffix, e.g. "2026E"). Revenue and FCF in BILLIONS USD as numeric values. Margins (gross/operating/net), ROIC, and epsGrowth as PERCENTAGES (e.g. 23.5 means 23.5%).
+- For "financials.valuationHistory": 5-7 years of trailing multiples as numeric values (pe, evEbitda, ps, pfcf). Use null only if truly unavailable.
 - Output STRICT JSON only — no markdown, no prose outside JSON.`;
 
 const SCHEMA_INSTRUCTION = `Return ONLY valid JSON matching this exact shape:
